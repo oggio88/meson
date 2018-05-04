@@ -1883,22 +1883,20 @@ class Interpreter(InterpreterBase):
             try:
                 module = importlib.import_module('mesonbuild.modules.' + modname)
             except ImportError:
-                if 'MESON_MODULE_PATH' in os.environ:
-                    for path in os.environ['MESON_MODULE_PATH']:
-                        try:
-                            spec = importlib.util.spec_from_file_location('mesonbuild.modules.' + modname, os.path.join(path, modname + '.py'))
-                            module = importlib.util.module_from_spec(spec)
-                            spec.loader.exec_module(module)
-                            break
-                        except:
-                            pass
-                    else:
-                        try:
-                            module = importlib.import_module(modname)
-                        except ImportError:
-                            raise InvalidArguments('Module "%s" does not exist' % modname)
+                module_path = os.environ.get('MESON_MODULE_PATH', None)
+                for path in (module_path and module_path.split(':')) or []:
+                    try:
+                        spec = importlib.util.spec_from_file_location('mesonbuild.modules.' + modname, os.path.join(path, modname + '.py'))
+                        module = importlib.util.module_from_spec(spec)
+                        spec.loader.exec_module(module)
+                        break
+                    except:
+                        pass
                 else:
-                    raise InvalidArguments('Module "%s" does not exist' % modname)               
+                    try:
+                        module = importlib.import_module(modname)
+                    except ImportError:
+                        raise InvalidArguments('Module "%s" does not exist' % modname)
             self.modules[modname] = module.initialize(self)
         return ModuleHolder(modname, self.modules[modname], self)
 
