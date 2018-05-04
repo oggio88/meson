@@ -36,6 +36,7 @@ from collections import namedtuple
 from pathlib import PurePath
 
 import importlib
+import importlib.utils
 
 permitted_method_kwargs = {
     'partial_dependency': {'compile_args', 'link_args', 'links', 'includes',
@@ -1882,9 +1883,21 @@ class Interpreter(InterpreterBase):
             try:
                 module = importlib.import_module('mesonbuild.modules.' + modname)
             except ImportError:
-                try:
-                    module = importlib.import_module(modname)
-                except ImportError:
+                if 'MESON_MODULE_PATH' in os.environ:
+                    for path in os.environ['MESON_MODULE_PATH']:
+                        try:
+                            spec = importlib.util.spec_from_file_location('mesonbuild.modules.' + modname, os.path.join(path, modname + '.py'))
+                            module = importlib.util.module_from_spec(spec)
+                            spec.loader.exec_module(module)
+                            break
+                        except:
+                            pass
+                    else:
+                        try:
+                            module = importlib.import_module(modname)
+                        except ImportError:
+                            raise InvalidArguments('Module "%s" does not exist' % modname)
+                else:
                     raise InvalidArguments('Module "%s" does not exist' % modname)               
             self.modules[modname] = module.initialize(self)
         return ModuleHolder(modname, self.modules[modname], self)
