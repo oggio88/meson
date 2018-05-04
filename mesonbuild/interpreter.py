@@ -36,7 +36,7 @@ from collections import namedtuple
 from pathlib import PurePath
 
 import importlib
-import importlib.utils
+import importlib.util
 
 permitted_method_kwargs = {
     'partial_dependency': {'compile_args', 'link_args', 'links', 'includes',
